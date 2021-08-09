@@ -21,5 +21,5 @@ I would recommend 10-15 epochs \
 The batch size was around 8-12 on my machine of 4 NVIDIA P100s but you can play around with it \
 **The debug feature is very important as you can quickly run through the script in order to play around with the batch size**
 ## Example
-`python ParallelizeT5.py -b 16 -g 4 -d 0` to run a model on 4 gpus, 16 batch size, and not on debug mode
+`python ParallelizeT5.py -b 16 -g 4 -d 0` to run a model on 4 gpus, 16 batch size, and not on debug mode\
 `python ParallelizeT5.py -b 16 -g 4 -d 1` to run the same as above but on debug mode
