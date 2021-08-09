@@ -1,7 +1,7 @@
 # Parallelize T5
 ## Explanation
 ### Data
-Txt files consisting of the raw training data 
+txt files consisting of the raw training data 
 ### Modeldump 
 Premade model storing area
 ### environ
