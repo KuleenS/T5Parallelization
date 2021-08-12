@@ -1,3 +1,6 @@
+<img src="https://huggingface.co/transformers/_images/parallelism-tp-parallel_shard_processing.png"
+     alt="Parallelize"
+     height = 200/>
 # Parallelize T5
 ## Explanation
 ### Data
