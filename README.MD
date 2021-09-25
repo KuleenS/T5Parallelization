@@ -15,12 +15,21 @@ This was on CUDA 10.2\
 ## ParallelizeT5.py
 The main script
 ## Using
-ParallelizeT5.py has 3 arguments: \
+ParallelizeT5.py has 9 arguments: \
 Batch Size: -b: int\
 Epochs: -e: int\
 Number of GPUs -g: int\
 Debug: -d int: (0 or 1)\
-I would recommend 10-15 epochs \
+Data Path: -i str\
+Example: ('./data/semeval/new')\
+Model Path: -m str\
+Example: ('./models/t5sup/)\
+Replacement Tokens: -r str\
+Example: ('replacementtokens.txt')\
+Extra Tokens: -i str\
+Example: ('extratokens.txt')\
+Size: -s int: (0,1,2,3, or 4)
+I would recommend 5-7 epochs \
 The batch size was around 8-12 on my machine of 4 NVIDIA P100s but you can play around with it \
 **The debug feature is very important as you can quickly run through the script in order to play around with the batch size**
 ## Example
