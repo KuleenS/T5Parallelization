@@ -2,25 +2,25 @@
     "training":[
         {
             "unsupervised":{
-                "batch_size": 32,
+                "batch_size": 16,
                 "epochs": 10,
                 "gpus": 4,
-                "data_path": "./data/semeval/files",
-                "model_path": "./home/models/t5new",
+                "data_path": "/home/ksasse/code/gptmedicalnotesgeneration/T5 Training/data/MIMICIII/tgt/",
+                "model_path": "/home/ksasse/models/t5basenew/",
                 "replacement_tokens": "replacement.txt",
-                "extra_tokens": "extra.txt",
+                "extra_tokens": "extratokens.txt",
                 "previously_trained": true,
-                "previously_trained_model": "./home/model/previous/",
+                "previously_trained_model": "/home/ksasse/models/t5basedima/",
                 "train_consec" : true
             }
         },
         {
             "supervised":{
-                "batch_size": 5,
-                "epochs": 15,
+                "batch_size": 16,
+                "epochs": 5,
                 "gpus": 4,
-                "data_path": "./data/semeval/secondfiles",
-                "model_path": "./home/models/t5newsup",
+                "data_path": "/home/ksasse/code/gptmedicalnotesgeneration/T5 Training/data/semeval/all/",
+                "model_path": "./home/models/t5newnewsup/",
                 "replacement_tokens": "",
                 "extra_tokens": "",
                 "previously_trained": false,
@@ -29,6 +29,6 @@
             }
         }
     ],
-    "size": 0,
-    "debug": 0
+    "size": 1,
+    "debug": 1
 }
