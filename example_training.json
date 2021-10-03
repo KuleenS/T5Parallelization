@@ -3,7 +3,7 @@
         {
             "unsupervised":{
                 "batch_size": 16,
-                "epochs": 10,
+                "epochs": 1,
                 "gpus": 4,
                 "data_path": "/home/ksasse/code/gptmedicalnotesgeneration/T5 Training/data/MIMICIII/tgt/",
                 "model_path": "/home/ksasse/models/t5basenew/",
@@ -17,10 +17,10 @@
         {
             "supervised":{
                 "batch_size": 16,
-                "epochs": 5,
+                "epochs": 1,
                 "gpus": 4,
                 "data_path": "/home/ksasse/code/gptmedicalnotesgeneration/T5 Training/data/semeval/all/",
-                "model_path": "./home/models/t5newnewsup/",
+                "model_path": "/home/ksasse/models/t5newnewsup/",
                 "replacement_tokens": "",
                 "extra_tokens": "",
                 "previously_trained": false,

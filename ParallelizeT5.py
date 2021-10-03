@@ -69,7 +69,7 @@ def process_supervised_files(filepath: str):
     source = []
     target = []
     for i in range(len(files)):
-        df = pd.read_csv(data_files_1[i], header=None)
+        df = pd.read_csv(files[i], header=None)
         source.extend(list(df[0]))
         target.extend(list(df[1]))
     return source, target
@@ -137,7 +137,7 @@ def tokenize_supervised(source: list[str], target: list[str], size_tuple: tuple,
     else:
         tokenization_length = len(target)
     model_inputs = []
-    for i in tqdm(range(len(source))):
+    for i in tqdm(range(tokenization_length)):
         tokenized_input = tokenizer(source[i], padding='max_length', truncation=True, max_length=size_tuple[2])
         tokenized_target = tokenizer(target[i], padding='max_length', truncation=True, max_length=size_tuple[2])
         model_inputs.append({
@@ -176,7 +176,7 @@ def main(args):
     debug = data['debug']
     
     for i in range(len(data['training'])):
-        if list(data['training'][0].keys())[0]=="unsupervised":
+        if list(data['training'][i].keys())[0]=="unsupervised":
             replacement_tokens = data['training'][i]["unsupervised"]["replacement_tokens"]
             filepath = data['training'][i]["unsupervised"]["data_path"]
             unsupervised_target = process_unsupervised_files(filepath, replacement_tokens)
@@ -217,18 +217,18 @@ def main(args):
                 prediction_loss_only=True, # If I need co compute only loss and not other metrics, setting this to true will use less RAM
                 learning_rate=0.001,
                 # Run evaluation every eval_steps
-                save_steps=1000, # How often to save a checkpoint
+                #save_steps=1000, # How often to save a checkpoint
                 save_total_limit=1, # Number of maximum checkpoints to save
                 remove_unused_columns=True, # Removes useless columns from the dataset
                 run_name='run_name', # Wandb run name
-                logging_steps=1000, # How often to log loss to wandb
+                #logging_steps=1000, # How often to log loss to wandb
                 # How often to run evaluation on the val_set
-                logging_first_step=False, # Whether to log also the very first training step to wandb
-                load_best_model_at_end=True, # Whether to load the best model found at each evaluation.
-                metric_for_best_model="loss", # Use loss to evaluate best model.
-                greater_is_better=False # Best model is the one with the lowest loss, not highest.
+                #logging_first_step=False, # Whether to log also the very first training step to wandb
+                #load_best_model_at_end=True, # Whether to load the best model found at each evaluation.
+                #metric_for_best_model="loss", # Use loss to evaluate best model.
+                #greater_is_better=False # Best model is the one with the lowest loss, not highest.
             )
-        elif data['training'][i]=="supervised":
+        elif list(data['training'][i].keys())[0]=="supervised":
             filepath = data['training'][i]["supervised"]["data_path"]
             supervised_source, supervised_target = process_supervised_files(filepath)
             extra_tokens = data['training'][i]["supervised"]['extra_tokens']
@@ -257,22 +257,22 @@ def main(args):
                 os.mkdir(output_dir)
             training_args = TrainingArguments(
                 output_dir=output_dir,
-                num_train_epochs=data['training'][i]['unsupervised']['epochs'],
-                per_device_train_batch_size=data['training'][i]['batch_size'],
+                num_train_epochs=data['training'][i]['supervised']['epochs'],
+                per_device_train_batch_size=data['training'][i]['supervised']['batch_size'],
             # Number of eval steps to keep in GPU (the higher, the mor vRAM used)
                 prediction_loss_only=True, # If I need co compute only loss and not other metrics, setting this to true will use less RAM
                 learning_rate=0.001,
                 # Run evaluation every eval_steps
-                save_steps=1000, # How often to save a checkpoint
+                #save_steps=1000, # How often to save a checkpoint
                 save_total_limit=1, # Number of maximum checkpoints to save
                 remove_unused_columns=True, # Removes useless columns from the dataset
                 run_name='run_name', # Wandb run name
-                logging_steps=1000, # How often to log loss to wandb
+                #logging_steps=1000, # How often to log loss to wandb
                 # How often to run evaluation on the val_set
-                logging_first_step=False, # Whether to log also the very first training step to wandb
-                load_best_model_at_end=True, # Whether to load the best model found at each evaluation.
+                #logging_first_step=False, # Whether to log also the very first training step to wandb
+                #load_best_model_at_end=True, # Whether to load the best model found at each evaluation.
                 metric_for_best_model="loss", # Use loss to evaluate best model.
-                greater_is_better=False # Best model is the one with the lowest loss, not highest.
+                #greater_is_better=False # Best model is the one with the lowest loss, not highest.
             )
         print(f"Prepping Trainer {i+1}")
         trainer = Trainer(
