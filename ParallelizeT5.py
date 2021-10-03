@@ -10,6 +10,35 @@ import pandas as pd
 import json
 #returns the length of the vocab minus one
 #used as an auxillary function for the tokenizing
+def parse_json(data):
+    if data['size']>4 or data['size']<0 or not isinstance(data['size'], int):
+        raise ValueError('Size Parameter is Invalid')
+    if data['debug']<0 or data['debug']>1:
+        raise ValueError('Debug Parameter is Invalid')
+    for i in range(len(data['training'])):
+        segment = list(data['training'][i].keys())[0]
+        if segment=="unsupervised":
+            data_segment = data['training'][i]["unsupervised"]
+        elif segment=="supervised":
+            data_segment = data['training'][i]["supervised"]
+        replacement_tokens = data_segment["replacement_tokens"]
+        if not os.path.isfile(replacement_tokens) and replacement_tokens!="":
+            raise ValueError(f'Replacement Token Files doesnt exist in {segment} {i+1}')
+        filepath = data_segment["data_path"]
+        if not os.path.isdir(filepath):
+            raise ValueError(f'Data File Path doesnt exist in {segment} {i+1}')
+        extra_tokens = data_segment['extra_tokens']
+        if not os.path.isfile(extra_tokens) and extra_tokens!="":
+            raise ValueError(f'Extra Token Files doesnt exist in {segment} {i+1}')
+        if data_segment['previously_trained']:
+            previously_trained_model = data_segment['previously_trained_model']
+            if not os.path.isdir(previously_trained_model):
+                raise ValueError(f'Previously Trained models doesnt exist in {segment} {i+1}')
+        if i==(len(data['training'])-1) and data_segment['train_consec']:
+            raise ValueError(f'Wrong Train Consec parameter in {segment} {i+1}')
+
+
+
 def sentinel_id(vocab: int) -> int:
     return vocab-1
 
@@ -172,25 +201,26 @@ def main(args):
     tokenizer = None
     with open(args.json_path) as f:
         data = json.load(f)
+    parse_json(data)
     size_tuple = size_dict[data['size']]
     debug = data['debug']
-    
     for i in range(len(data['training'])):
         if list(data['training'][i].keys())[0]=="unsupervised":
-            replacement_tokens = data['training'][i]["unsupervised"]["replacement_tokens"]
-            filepath = data['training'][i]["unsupervised"]["data_path"]
+            data_segment = data['training'][i]["unsupervised"]
+            replacement_tokens = data_segment["replacement_tokens"]
+            filepath = data_segment["data_path"]
             unsupervised_target = process_unsupervised_files(filepath, replacement_tokens)
-            extra_tokens = data['training'][i]["unsupervised"]['extra_tokens']
-            if data['training'][i]["unsupervised"]['train_consec'] == False and len(data['training'])> 1:
+            extra_tokens = data_segment['extra_tokens']
+            if data_segment['train_consec'] == False and len(data['training'])> 1:
                 print("Starting unsupervised training after another training")
                 dataset = tokenize_unsupervised(source, size_tuple, extra_tokens, debug, tokenizer)
                 dataset = dataset[0]
             else:
-                if data['training'][i]["unsupervised"]['previously_trained'] == True:
+                if data_segment['previously_trained'] == True:
                     print("Starting unsupervised training on loaded model")
                     dataset, tokenizer = tokenize_unsupervised(unsupervised_target, size_tuple, extra_tokens, debug, None)
                     dataset = dataset[0]
-                    model = T5ForConditionalGeneration.from_pretrained(data['training'][i]["unsupervised"]['previously_trained_model'])
+                    model = T5ForConditionalGeneration.from_pretrained(data_segment['previously_trained_model'])
                 else:
                     print("Starting unsupervised training from scratch")
                     dataset, tokenizer = tokenize_unsupervised(unsupervised_target, size_tuple, extra_tokens, debug, None)
@@ -200,19 +230,19 @@ def main(args):
                 model.resize_token_embeddings(len(tokenizer))
                 device_map = {}
                 t5_heads_array = list(range(0, size_tuple[1]))
-                gpus = data['training'][i]['unsupervised']['gpus']
+                gpus = data_segment['gpus']
                 print("Parallelizeing model")
                 for j in range(gpus):
                     device_map[j] = t5_heads_array[j*(len(t5_heads_array)//gpus):(j+1)*(len(t5_heads_array)//gpus)]
                 model.parallelize(device_map=device_map)
             print('Setting up Model')
-            output_dir = data['training'][i]['unsupervised']['model_path']
+            output_dir = data_segment['model_path']
             if not os.path.isdir(output_dir):
                 os.mkdir(output_dir)
             training_args = TrainingArguments(
                 output_dir=output_dir,
-                num_train_epochs=data['training'][i]['unsupervised']['epochs'],
-                per_device_train_batch_size=data['training'][i]['unsupervised']['batch_size'],
+                num_train_epochs=data_segment['epochs'],
+                per_device_train_batch_size=data_segment['batch_size'],
             # Number of eval steps to keep in GPU (the higher, the mor vRAM used)
                 prediction_loss_only=True, # If I need co compute only loss and not other metrics, setting this to true will use less RAM
                 learning_rate=0.001,
@@ -229,17 +259,18 @@ def main(args):
                 #greater_is_better=False # Best model is the one with the lowest loss, not highest.
             )
         elif list(data['training'][i].keys())[0]=="supervised":
-            filepath = data['training'][i]["supervised"]["data_path"]
+            data_segment = data['training'][i]["supervised"]
+            filepath = data_segment["data_path"]
             supervised_source, supervised_target = process_supervised_files(filepath)
-            extra_tokens = data['training'][i]["supervised"]['extra_tokens']
-            if data['training'][i]["supervised"]['train_consec'] == False and len(data['training'])> 1:
+            extra_tokens = data_segment['extra_tokens']
+            if data_segment['train_consec'] == False and len(data['training'])> 1:
                 dataset = tokenize_supervised(supervised_source, supervised_target, size_tuple, extra_tokens, debug, tokenizer)
                 dataset = dataset[0]
             else:
-                if data['training'][i]["supervised"]['previously_trained'] == True:
+                if data_segment['previously_trained'] == True:
                     dataset, tokenizer = tokenize_supervised(supervised_source, supervised_target, size_tuple, extra_tokens, debug, tokenizer)
                     dataset = dataset[0]
-                    model = T5ForConditionalGeneration.from_pretrained(data['training'][i]["supervised"]['previously_trained_model'])
+                    model = T5ForConditionalGeneration.from_pretrained(data_segment['previously_trained_model'])
                 else:
                     dataset, tokenizer = tokenize_supervised(supervised_source, supervised_target, size_tuple, extra_tokens, debug, tokenizer)
                     dataset = dataset[0]
@@ -247,18 +278,18 @@ def main(args):
                 model.resize_token_embeddings(len(tokenizer))
                 device_map = {}
                 t5_heads_array = list(range(0, size_tuple[1]))
-                gpus = data['training'][i]['supervised']['gpus']
+                gpus = data_segment['gpus']
                 for j in range(gpus):
                     device_map[j] = t5_heads_array[j*(len(t5_heads_array)//gpus):(j+1)*(len(t5_heads_array)//gpus)]
                 model.parallelize(device_map=device_map)
             print('Setting up Model')
-            output_dir = data['training'][i]['supervised']['model_path']
+            output_dir = data_segment['model_path']
             if not os.path.isdir(output_dir):
                 os.mkdir(output_dir)
             training_args = TrainingArguments(
                 output_dir=output_dir,
-                num_train_epochs=data['training'][i]['supervised']['epochs'],
-                per_device_train_batch_size=data['training'][i]['supervised']['batch_size'],
+                num_train_epochs=data_segment['epochs'],
+                per_device_train_batch_size=data_segment['batch_size'],
             # Number of eval steps to keep in GPU (the higher, the mor vRAM used)
                 prediction_loss_only=True, # If I need co compute only loss and not other metrics, setting this to true will use less RAM
                 learning_rate=0.001,
