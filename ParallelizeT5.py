@@ -56,7 +56,7 @@ def noise_span_to_unique_sentinel(tokens: torch.Tensor, noise_mask: torch.Tensor
 def nonnoise_span_to_unique_sentinel(tokens: torch.Tensor, noise_mask: torch.Tensor, vocab:int) -> torch.Tensor:
     return noise_span_to_unique_sentinel(tokens, torch.logical_not(noise_mask), vocab)
 
-def process_unsupervised_files(filepath: str, specialtokens: str,):
+def process_unsupervised_files(filepath: str, specialtokens: str):
     """
     filepath - a string to the path of where the files are being held
     NOTE: Make sure the files are in this format
@@ -77,7 +77,7 @@ def process_unsupervised_files(filepath: str, specialtokens: str,):
         filename = os.path.join(filepath,files[i])
         with open(filename, "r") as f:
             target.extend(f.readlines())
-    if (specialtokens):
+    if specialtokens!="":
         replacement_tokens = open(specialtokens, "r").read().split("\n")
         for i in range(len(target)):
             for j in range(len(replacement_tokens)):
@@ -85,7 +85,7 @@ def process_unsupervised_files(filepath: str, specialtokens: str,):
     print('Ending Data loading and cleaning')
     return target
 
-def process_supervised_files(filepath: str):
+def process_supervised_files(filepath: str, specialtokens: str):
     """
     filepath - a string to the path of where the files are being held
     NOTE: Make sure the files are csvs with this format
@@ -101,6 +101,12 @@ def process_supervised_files(filepath: str):
         df = pd.read_csv(files[i], header=None)
         source.extend(list(df[0]))
         target.extend(list(df[1]))
+    if specialtokens!="":
+        replacement_tokens = open(specialtokens, "r").read().split("\n")
+        for i in range(len(target)):
+            for j in range(len(replacement_tokens)):
+                target[i] = target[i].replace(replacement_tokens[j], '')
+                source[i] = source[i].replace(replacement_tokens[j], '')
     return source, target
     
 
@@ -228,13 +234,7 @@ def main(args):
                     model = T5ForConditionalGeneration.from_pretrained(size_tuple[0])
                 print("Resizing embeddings")
                 model.resize_token_embeddings(len(tokenizer))
-                device_map = {}
-                t5_heads_array = list(range(0, size_tuple[1]))
-                gpus = data_segment['gpus']
-                print("Parallelizeing model")
-                for j in range(gpus):
-                    device_map[j] = t5_heads_array[j*(len(t5_heads_array)//gpus):(j+1)*(len(t5_heads_array)//gpus)]
-                model.parallelize(device_map=device_map)
+                model.parallelize()
             print('Setting up Model')
             output_dir = data_segment['model_path']
             if not os.path.isdir(output_dir):
@@ -261,7 +261,8 @@ def main(args):
         elif list(data['training'][i].keys())[0]=="supervised":
             data_segment = data['training'][i]["supervised"]
             filepath = data_segment["data_path"]
-            supervised_source, supervised_target = process_supervised_files(filepath)
+            replacement_tokens = data_segment["replacement_tokens"]
+            supervised_source, supervised_target = process_supervised_files(filepath, replacement_tokens)
             extra_tokens = data_segment['extra_tokens']
             if data_segment['train_consec'] == False and len(data['training'])> 1:
                 dataset = tokenize_supervised(supervised_source, supervised_target, size_tuple, extra_tokens, debug, tokenizer)
@@ -275,13 +276,8 @@ def main(args):
                     dataset, tokenizer = tokenize_supervised(supervised_source, supervised_target, size_tuple, extra_tokens, debug, tokenizer)
                     dataset = dataset[0]
                     model = T5ForConditionalGeneration.from_pretrained(size_tuple[0])
-                model.resize_token_embeddings(len(tokenizer))
-                device_map = {}
-                t5_heads_array = list(range(0, size_tuple[1]))
-                gpus = data_segment['gpus']
-                for j in range(gpus):
-                    device_map[j] = t5_heads_array[j*(len(t5_heads_array)//gpus):(j+1)*(len(t5_heads_array)//gpus)]
-                model.parallelize(device_map=device_map)
+                model.resize_token_embeddings(len(tokenizer))              
+                model.parallelize()
             print('Setting up Model')
             output_dir = data_segment['model_path']
             if not os.path.isdir(output_dir):
@@ -313,6 +309,7 @@ def main(args):
         )
         print('Training Model')
         trainer.train()
+        model.deparallelize()
         print('Saving Model')
         trainer.save_model(output_dir + '/model')
 
