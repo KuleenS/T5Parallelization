@@ -1,0 +1,34 @@
+{
+    "training":[
+        {
+            "unsupervised":{
+                "batch_size": 16,
+                "epochs": 1,
+                "gpus": 4,
+                "data_path": "/home/ksasse/code/gptmedicalnotesgeneration/T5 Training/data/MIMICIII/tgt/",
+                "model_path": "/home/ksasse/models/t5basenew/",
+                "replacement_tokens": "replacement.txt",
+                "extra_tokens": "extratokens.txt",
+                "previously_trained": true,
+                "previously_trained_model": "/home/ksasse/models/t5basedima/",
+                "train_consec" : true
+            }
+        },
+        {
+            "supervised":{
+                "batch_size": 16,
+                "epochs": 1,
+                "gpus": 4,
+                "data_path": "/home/ksasse/code/gptmedicalnotesgeneration/T5 Training/data/semeval/all/",
+                "model_path": "/home/ksasse/models/t5newnewsup/",
+                "replacement_tokens": "",
+                "extra_tokens": "",
+                "previously_trained": false,
+                "previously_trained_model": "",
+                "train_consec" : false
+            }
+        }
+    ],
+    "size": 1,
+    "debug": 1
+}
